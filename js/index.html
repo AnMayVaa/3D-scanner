@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Scanner Pro</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #f4f4f9; color: #333; }
+        .container { max-width: 900px; margin: 30px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        /* Camera Preview Box */
+        #cam-preview {
+            width: 640px; height: 480px; 
+            background: #000; margin: 20px auto; 
+            border-radius: 8px; display: block; object-fit: contain;
+        }
+
+        .info { font-size: 1.2rem; margin: 15px; font-weight: bold; }
+        
+        /* Buttons */
+        button { padding: 12px 24px; font-size: 1rem; cursor: pointer; border: none; border-radius: 6px; margin: 8px; transition: 0.2s; }
+        .btn-start { background: #28a745; color: white; }
+        .btn-stop { background: #dc3545; color: white; }
+        .btn-capture { background: #007bff; color: white; font-weight: bold; padding: 15px 40px; font-size: 1.2rem; }
+        
+        button:hover { opacity: 0.9; transform: scale(1.02); }
+        button:active { transform: scale(0.98); }
+
+        #notification { height: 20px; color: green; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📸 RealSense 3D Scanner</h1>
+        
+        <img id="cam-preview" src="" alt="Camera Stream">
+
+        <div class="info">Distance: <span id="dist-display">---</span> meters</div>
+
+        <div>
+            <button class="btn-start" onclick="sendCommand('START')">Start Camera</button>
+            <button class="btn-stop" onclick="sendCommand('STOP')">Stop Camera</button>
+        </div>
+        <br>
+        <div>
+            <button class="btn-capture" onclick="sendCommand('CAPTURE')">📷 Capture 3D Model</button>
+        </div>
+        <p id="notification"></p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const imgPreview = document.getElementById('cam-preview');
+        const distDisplay = document.getElementById('dist-display');
+        const noti = document.getElementById('notification');
+
+        // Function to send commands to Node.js
+        function sendCommand(cmd) {
+            socket.emit('command', cmd);
+        }
+
+        // Listen for data updates
+        socket.on('camera-data', (data) => {
+            // Update Distance Text
+            if (data.distance) distDisplay.innerText = data.distance;
+
+            // Update Image Preview (Base64)
+            if (data.image) {
+                imgPreview.src = 'data:image/jpeg;base64,' + data.image;
+            }
+
+            // Handle Save Confirmation
+            if (data.event === 'saved') {
+                noti.innerText = "Saved Successfully! File: " + data.path;
+                setTimeout(() => noti.innerText = "", 4000);
+            }
+            
+            // Handle Processing Info
+            if (data.info) {
+                noti.innerText = data.info;
+            }
+        });
+    </script>
+</body>
+</html>
